@@ -62,9 +62,9 @@ const Home = ({ user, logout }) => {
     });
   };
 
-  const postMessage = (body) => {
+  const postMessage = async (body) => {
     try {
-      const data = saveMessage(body);
+      const data = await saveMessage(body);
 
       if (!body.conversationId) {
         addNewConvo(body.recipientId, data.message);
@@ -106,13 +106,17 @@ const Home = ({ user, logout }) => {
         setConversations((prev) => [newConvo, ...prev]);
       }
 
-      conversations.forEach((convo) => {
+      // update the conversation that the message is for
+      const convoMsgUpdate = conversations.map((convo) => {
         if (convo.id === message.conversationId) {
-          convo.messages.push(message);
-          convo.latestMessageText = message.text;
+          const convoCopy = { ...convo };
+          convoCopy.messages = [...convo.messages, message];
+          convoCopy.latestMessageText = message.text;
+          return convoCopy
         }
+        return convo;
       });
-      setConversations(conversations);
+      setConversations(convoMsgUpdate);
     },
     [setConversations, conversations]
   );
