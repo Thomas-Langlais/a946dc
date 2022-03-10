@@ -115,16 +115,14 @@ const Home = ({ user, logout }) => {
       }
 
       // update the conversation that the message is for
-      const convoMsgUpdate = conversations.map((convo) => {
-        if (convo.id === message.conversationId) {
-          const convoCopy = { ...convo };
-          convoCopy.messages = [...convo.messages, message];
-          convoCopy.latestMessageText = message.text;
-          return convoCopy
-        }
-        return convo;
-      });
-      setConversations(convoMsgUpdate);
+      const convo = conversations.find((convo) => convo.id === message.conversationId);
+      const newConvos = conversations.filter((convo) => convo.id !== message.conversationId);
+      
+      const convoCopy = { ...convo };
+      convoCopy.messages = [...convo.messages, message];
+      convoCopy.latestMessageText = message.text;
+      
+      setConversations([convoCopy, ...newConvos]);
     },
     [setConversations, conversations]
   );
