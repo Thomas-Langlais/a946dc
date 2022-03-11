@@ -3,12 +3,11 @@ const { User } = require("../../db/models");
 const { Op } = require("sequelize");
 const onlineUsers = require("../../onlineUsers");
 
+const { requireUser } = require("../../middleware");
+
 // find users by username
-router.get("/:username", async (req, res, next) => {
+router.get("/:username", requireUser, async (req, res, next) => {
   try {
-    if (!req.user) {
-      return res.sendStatus(401);
-    }
     const { username } = req.params;
 
     const users = await User.findAll({
