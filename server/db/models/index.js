@@ -10,6 +10,7 @@ Conversation.belongsTo(User, { as: "user2" });
 Message.belongsTo(Conversation);
 Conversation.hasMany(Message);
 
+
 module.exports = {
   User,
   Conversation,
