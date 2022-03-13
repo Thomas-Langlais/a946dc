@@ -37,7 +37,7 @@ const Chat = ({ conversation, setActiveChat }) => {
   };
 
   return (
-    <Box onClick={() => handleClick(conversation)} className={classes.root}>
+    <Box data-chat={otherUser.username} onClick={() => handleClick(conversation)} className={classes.root}>
       <Badge badgeContent={unreadMessages}
         classes={{ root: classes.badgeRoot, badge: classes.bubble }}>
         <BadgeAvatar
