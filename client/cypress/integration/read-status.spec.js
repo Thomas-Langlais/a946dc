@@ -35,12 +35,37 @@ describe("Feature: conversation read status", () => {
   it("displays the chat with unread messages", () => {
     cy.login(tommy.username, tommy.password);
 
-    const peter = cy.contains("peter");
+    const peter = cy.get('[data-chat="peter"]');
 
     const badge = peter.contains("3");
     
     badge.should("be.visible");
     peter.click();
-    badge.should("be.visible");
-  })
+    badge.should("not.be.visible");
+  });
+
+  it("displays other user's avatar", () => {
+    cy.reload();
+    cy.login(tommy.username, tommy.password);
+    cy.contains("peter").click();
+    cy.logout();
+
+    cy.reload();
+    cy.login(peter.username, peter.password);
+    cy.contains("tommy").click();
+
+
+    cy.contains("First message").then(() => {
+      // Select the message list DOM by finding the closest common ancestor
+      // between two messages.
+      const $firstMessage = Cypress.$(':contains("First message")');
+      const $secondMessage = Cypress.$(':contains("Second message")');
+      const $list = $firstMessage.parents().has($secondMessage).first();
+
+      // verify the last read message avatar
+      cy.wrap($list).children().eq(0).get("svg").should("not.exist");
+      cy.wrap($list).children().eq(1).get("svg").should("not.exist");
+      cy.wrap($list).children().eq(2).get("svg").should("exist");
+    });
+  });
 });
