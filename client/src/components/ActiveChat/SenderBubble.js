@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
   avatar: {
     width: 20,
     height: 20,
-    marginTop: 7
+    marginTop: 7,
   },
 }));
 
@@ -38,11 +38,13 @@ const SenderBubble = ({ time, text, otherUser }) => {
       <Box className={classes.bubble}>
         <Typography className={classes.text}>{text}</Typography>
       </Box>
-      <Avatar
-        alt={otherUser.username}
-        src={otherUser.photoUrl}
-        className={classes.avatar}
-      />
+      {otherUser && (
+        <Avatar
+          alt={otherUser.username}
+          src={otherUser.photoUrl}
+          className={classes.avatar}
+        />
+      )}
     </Box>
   );
 };

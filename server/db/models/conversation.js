@@ -2,12 +2,12 @@ const { Op, Sequelize } = require("sequelize");
 const db = require("../db");
 
 const Conversation = db.define("conversation", {
-  user1LastMessage: {
+  user1ReadMessage: {
     type: Sequelize.INTEGER,
     allowNull: false,
     defaultValue: 0
   },
-  user2LastMessage: {
+  user2ReadMessage: {
     type: Sequelize.INTEGER,
     allowNull: false,
     defaultValue: 0

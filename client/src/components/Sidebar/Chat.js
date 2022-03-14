@@ -30,16 +30,20 @@ const useStyles = makeStyles((theme) => ({
 const Chat = ({ conversation, setActiveChat }) => {
   const classes = useStyles();
   const { otherUser } = conversation;
-  const unreadMessages = conversation.messages.length;
+  const unreadMessages = conversation.unreadMessages;
 
   const handleClick = async (conversation) => {
     await setActiveChat(conversation.otherUser.username);
   };
 
   return (
-    <Box data-chat={otherUser.username} onClick={() => handleClick(conversation)} className={classes.root}>
+    <Box data-chat={otherUser.username}
+      onClick={() => handleClick(conversation)}
+      className={classes.root}
+    >
       <Badge badgeContent={unreadMessages}
-        classes={{ root: classes.badgeRoot, badge: classes.bubble }}>
+        classes={{ root: classes.badgeRoot, badge: classes.bubble }}
+      >
         <BadgeAvatar
           photoUrl={otherUser.photoUrl}
           username={otherUser.username}
