@@ -10,6 +10,7 @@ require("dotenv").config();
 const { app, sessionStore } = require("../app");
 const http = require("http");
 const db = require("../db");
+const { Conversation } = require("../db/models");
 const onlineUsers = require("../onlineUsers");
 
 /**
@@ -45,6 +46,34 @@ io.on("connection", (socket) => {
       message: data.message,
       sender: data.sender,
     });
+  });
+
+  socket.on("read-conversation", async (data) => {
+    try {
+      const { conversationId, sender, latestMessageId } = data;
+
+      // update the database
+      const conversation = await Conversation.findByPk(conversationId);
+      if (conversation.user1Id === sender.id) {
+        await conversation.update({
+          user1ReadMessage: latestMessageId
+        });
+      } else if (conversation.user2Id === sender.id) {
+        await conversation.update({
+          user2ReadMessage: latestMessageId
+        });
+      } else {
+        throw new Error(`The user (${sender.username}) is not in this conversation`);
+      }
+      
+      socket.broadcast.emit("read-conversation", {
+        conversationId,
+        sender,
+        latestMessageId,
+      });
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   socket.on("logout", (id) => {

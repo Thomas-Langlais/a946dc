@@ -21,7 +21,7 @@ router.get("/", async (req, res, next) => {
       attributes: ["id", "user1ReadMessage", "user2ReadMessage"],
       order: [
         ["updatedAt", "DESC"],
-        [Message, "createdAt", "ASC"]
+        [Message, "createdAt", "ASC"],
       ],
       include: [
         { model: Message },
@@ -79,35 +79,35 @@ router.get("/", async (req, res, next) => {
       convoJSON.latestMessageText = convoJSON.messages[last].text;
 
       // set the properties for user read status
-      const userReadMessage = convoJSON.user1 === null ?
-        convoJSON.user1ReadMessage :
-        convoJSON.user2ReadMessage;
-      
+      const userReadMessage =
+        convoJSON.user1 === null
+          ? convoJSON.user1ReadMessage
+          : convoJSON.user2ReadMessage;
+
       const unreadMessages = convoJSON.messages.reduce((count, msg) => {
-        if (msg.senderId === userId)
-          return count;
-        
-        if (msg.id > userReadMessage)
-          return count + 1;
+        if (msg.senderId === userId) return count;
+
+        if (msg.id > userReadMessage) return count + 1;
         return count;
       }, 0);
       convoJSON.unreadMessages = unreadMessages;
 
       // set the read status of the other user on the last read message
       const otherUserReadMessage = convoJSON.otherUser.lastReadMessage;
-      const userMessages = convoJSON.messages.filter(msg => msg.senderId === userId)
-        
-      for (let j = 0; j < userMessages.length; j++) {
-        const message = userMessages[j];
-        if (otherUserReadMessage > message.id) {
-          j = j === 0 ? j : j - 1;
-          userMessages[j].userLastRead = convoJSON.otherUser;
-          break
-        } else if (otherUserReadMessage === message.id) {
-          userMessages[j].userLastRead = convoJSON.otherUser;
-          break;
-        }
+      const messages = convoJSON.messages;
+
+      let prev = -1,
+        current = 0;
+      const otherUser = convoJSON.otherUser;
+
+      while (
+        current < messages.length &&
+        otherUserReadMessage >= messages[current].id
+      ) {
+        if (messages[current].senderId === userId) prev = current;
+        current++;
       }
+      if (prev >= 0) messages[prev].userLastRead = otherUser;
 
       conversations[i] = convoJSON;
     }
