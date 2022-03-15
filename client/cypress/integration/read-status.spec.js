@@ -63,9 +63,9 @@ describe("Feature: conversation read status", () => {
       const $list = $firstMessage.parents().has($secondMessage).first();
 
       // verify the last read message avatar
-      cy.wrap($list).children().eq(0).get("svg").should("not.exist");
-      cy.wrap($list).children().eq(1).get("svg").should("not.exist");
-      cy.wrap($list).children().eq(2).get("svg").should("exist");
+      cy.wrap($list).children().eq(0).should("not.contain.html", "svg");
+      cy.wrap($list).children().eq(1).should("not.contain.html", "svg");
+      cy.wrap($list).children().eq(2).should("contain.html", "svg");
     });
   });
 });
