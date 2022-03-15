@@ -37,7 +37,11 @@ const Home = ({ user, logout }) => {
     users.forEach((user) => {
       // only create a fake convo if we don't already have a convo with this user
       if (!currentUsers[user.id]) {
-        let fakeConvo = { otherUser: user, messages: [] };
+        let fakeConvo = {
+          otherUser: { ...user, lastReadMessage: -1 },
+          messages: [],
+          unreadMessages: 0,
+        };
         newState.push(fakeConvo);
       }
     });
@@ -139,7 +143,7 @@ const Home = ({ user, logout }) => {
           socket.emit('read-conversation', {
             conversationId: message.conversationId,
             sender: user,
-            latestMessageId: message.id
+            latestMessageId: message.id,
           });
 
         return [convoCopy, ...newConvos];
@@ -155,22 +159,33 @@ const Home = ({ user, logout }) => {
       const convoIndex = conversations.findIndex(
         (convo) => convo.otherUser.username === username
       );
-      const last = conversations[convoIndex].messages.length - 1;
-      const latestMessageId = conversations[convoIndex].messages[last].id;
+
+      // exit early to not send socket event if conversation is fake
+      if (!conversations[convoIndex].id) return;
 
       const convoCopy = {
         ...conversations[convoIndex],
         unreadMessages: 0,
       };
       conversations[convoIndex] = convoCopy;
-
       setConversations([...conversations]);
 
-      socket.emit('read-conversation', {
-        conversationId: convoCopy.id,
-        sender: user,
-        latestMessageId: latestMessageId,
-      });
+      // only send an event if there is a higher message id
+      const last = conversations[convoIndex].messages.length - 1;
+      if (last < 0) return;
+
+      const userLastReadMessage =
+        convoCopy.user1 === null
+          ? convoCopy.user1ReadMessage
+          : convoCopy.user2ReadMessage;
+      const latestMessageId = conversations[convoIndex].messages[last].id;
+
+      if (userLastReadMessage < latestMessageId)
+        socket.emit('read-conversation', {
+          conversationId: convoCopy.id,
+          sender: user,
+          latestMessageId: latestMessageId,
+        });
     },
     [setActiveConversation, setConversations, conversations, socket, user]
   );
@@ -178,47 +193,43 @@ const Home = ({ user, logout }) => {
   const updateReadConversation = useCallback(
     (data) => {
       setConversations((prev) => {
-        const convosCopy = [];
-        let found = false;
+        const convoIndex = prev.findIndex(
+          (convo) => convo.id === data.conversationId
+        );
+        if (convoIndex === -1) return prev;
 
-        for (let i = 0; i < prev.length; i++) {
-          const convo = prev[i];
+        // set the read status of the other user on the last read message
+        const convoCopy = { ...prev[convoIndex] }
 
-          if (convo.id !== data.conversationId) {
-            convosCopy.push(convo);
-          } else {
-            const convoCopy = { ...convo };
+        const otherUserReadMessage = data.latestMessageId;
+        const messages = convoCopy.messages;
 
-            // set the read status of the other user on the last read message
-            const otherUserReadMessage = data.latestMessageId;
-            const messages = convoCopy.messages;
+        let previous = -1,
+          current = 0;
+        const otherUser = data.sender;
 
-            let prev = -1,
-              current = 0;
-            const otherUser = data.sender;
-
-            while (
-              current < messages.length &&
-              otherUserReadMessage >= messages[current].id
-            ) {
-              if (messages[current].userLastRead)
-                messages[current] = {
-                  ...messages[current],
-                  userLastRead: null,
-                };
-              if (messages[current].senderId === user.id) prev = current;
-              current++;
-            }
-            if (prev >= 0) messages[prev].userLastRead = otherUser;
-
-            convoCopy.messages = [...messages];
-
-            convosCopy.push(convoCopy);
-            found = true;
-          }
+        while (
+          current < messages.length &&
+          otherUserReadMessage >= messages[current].id
+        ) {
+          if (messages[current].userLastRead)
+            messages[current] = {
+              ...messages[current],
+              userLastRead: null,
+            };
+          if (messages[current].senderId === user.id) previous = current;
+          current++;
         }
+        if (previous >= 0)
+          messages[previous] = {
+            ...messages[previous],
+            userLastRead: otherUser,
+          };
 
-        return found ? convosCopy : prev;
+        convoCopy.messages = [...messages];
+        prev[convoIndex] = convoCopy;
+
+        return [...prev];
       });
     },
     [setConversations, user]
