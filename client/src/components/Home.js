@@ -167,17 +167,25 @@ const Home = ({ user, logout }) => {
         ...conversations[convoIndex],
         unreadMessages: 0,
       };
-      conversations[convoIndex] = convoCopy;
-      setConversations([...conversations]);
-
-      // only send an event if there is a higher message id
-      const last = conversations[convoIndex].messages.length - 1;
-      if (last < 0) return;
-
+      const last = convoCopy.messages.length - 1;
       const userLastReadMessage =
         convoCopy.user1 === null
           ? convoCopy.user1ReadMessage
           : convoCopy.user2ReadMessage;
+      
+      if (last >= 0) {
+        const latestMessageId = convoCopy.messages[last].id;
+        if (convoCopy.user1 === null)
+          convoCopy.user1ReadMessage = latestMessageId;
+        else
+          convoCopy.user2ReadMessage = latestMessageId;
+      }
+
+      conversations[convoIndex] = convoCopy;
+      setConversations([...conversations]);
+
+      // only send an event if there is a higher message id
+      if (last < 0) return;
       const latestMessageId = conversations[convoIndex].messages[last].id;
 
       if (userLastReadMessage < latestMessageId)
