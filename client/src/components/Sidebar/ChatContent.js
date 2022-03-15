@@ -29,7 +29,7 @@ const ChatContent = ({ conversation }) => {
 
   const { otherUser } = conversation;
   const latestMessageText = conversation.id && conversation.latestMessageText;
-  const hasUnreadMessages = conversation.messages.length > 0;
+  const hasUnreadMessages = conversation.unreadMessages > 0;
 
   return (
     <Box className={classes.root}>
