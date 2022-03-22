@@ -82,6 +82,23 @@ const Home = ({ user, logout }) => {
     }
   };
 
+  const updateConversationRead = async (id, body) => {
+    const { data } = await axios.patch(`/api/conversation/${id}/read`, body);
+    return data;
+  };
+
+  const sendReadConversation = (data, body) => {
+    socket.emit('read-conversation', {
+      conversationId: data.conversation.id,
+      sender: data.sender,
+      latestMessageId: body.message
+    });
+  };
+
+  const patchConversation = async (body) => {
+
+  }
+
   const addNewConvo = useCallback(
     (recipientId, message) => {
       setConversations((prev) => {

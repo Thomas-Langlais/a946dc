@@ -118,4 +118,37 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+router.patch("/:id/read", async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.sendStatus(401);
+    }
+    
+    const { message } = req.body;
+    if (typeof message !== "number") {
+      return res.sendStatus(400);
+    }
+
+    const userId = req.user.id;
+    const { id } = req.params;
+    const conversation = await Conversation.findByPk(id);
+    
+    if (conversation.user1Id === userId) {
+      await conversation.update({
+        user1ReadMessage: message
+      });
+    } else if (conversation.user2Id === userId) {
+      await conversation.update({
+        user2ReadMessage: message
+      });
+    } else {
+      throw new Error(`The user (${req.user.username}) is not in this conversation`);
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
