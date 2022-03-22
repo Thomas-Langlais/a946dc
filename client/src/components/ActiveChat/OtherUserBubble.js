@@ -2,7 +2,7 @@ import React from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import { Box, Typography, Avatar } from '@material-ui/core';
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     display: 'flex',
   },
@@ -18,10 +18,7 @@ const useStyles = makeStyles(() => ({
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  bubble: {
-    backgroundImage: 'linear-gradient(225deg, #6CC1FF 0%, #3A8DFF 100%)',
-    borderRadius: '0 10px 10px 10px',
-  },
+  bubble: theme.chat.message.other,
   text: {
     fontSize: 14,
     fontWeight: 'bold',

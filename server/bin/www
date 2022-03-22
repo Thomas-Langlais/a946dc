@@ -47,6 +47,14 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("read-conversation", async (data) => {
+    socket.broadcast.emit("read-conversation", {
+      conversationId: data.conversationId,
+      sender: data.sender,
+      latestMessageId: data.latestMessageId,
+    });
+  });
+
   socket.on("logout", (id) => {
     if (onlineUsers.includes(id)) {
       userIndex = onlineUsers.indexOf(id);

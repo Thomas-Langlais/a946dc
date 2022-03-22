@@ -18,10 +18,10 @@ router.get("/", async (req, res, next) => {
           user2Id: userId,
         },
       },
-      attributes: ["id"],
+      attributes: ["id", "user1ReadMessage", "user2ReadMessage"],
       order: [
         ["updatedAt", "DESC"],
-        [Message, "createdAt", "ASC"]
+        [Message, "createdAt", "ASC"],
       ],
       include: [
         { model: Message },
@@ -57,10 +57,14 @@ router.get("/", async (req, res, next) => {
       // set a property "otherUser" so that frontend will have easier access
       if (convoJSON.user1) {
         convoJSON.otherUser = convoJSON.user1;
+        convoJSON.otherUser.lastReadMessage = convoJSON.user1ReadMessage;
         delete convoJSON.user1;
+        delete convoJSON.user1ReadMessage;
       } else if (convoJSON.user2) {
         convoJSON.otherUser = convoJSON.user2;
+        convoJSON.otherUser.lastReadMessage = convoJSON.user2ReadMessage;
         delete convoJSON.user2;
+        delete convoJSON.user2ReadMessage;
       }
 
       // set property for online status of the other user
@@ -73,12 +77,77 @@ router.get("/", async (req, res, next) => {
       // set properties for notification count and latest message preview
       const last = convoJSON.messages.length - 1;
       convoJSON.latestMessageText = convoJSON.messages[last].text;
+
+      // set the properties for user read status
+      const userReadMessage =
+        convoJSON.user1 === null
+          ? convoJSON.user1ReadMessage
+          : convoJSON.user2ReadMessage;
+
+      const unreadMessages = convoJSON.messages.reduce((count, msg) => {
+        if (msg.senderId === userId) return count;
+
+        if (msg.id > userReadMessage) return count + 1;
+        return count;
+      }, 0);
+      convoJSON.unreadMessages = unreadMessages;
+
+      // set the read status of the other user on the last read message
+      const otherUserReadMessage = convoJSON.otherUser.lastReadMessage;
+      const messages = convoJSON.messages;
+
+      let prev = -1,
+        current = 0;
+      const otherUser = convoJSON.otherUser;
+
+      while (
+        current < messages.length &&
+        otherUserReadMessage >= messages[current].id
+      ) {
+        if (messages[current].senderId === userId) prev = current;
+        current++;
+      }
+      if (prev >= 0) messages[prev].userLastRead = otherUser;
+
       conversations[i] = convoJSON;
     }
 
     res.json(conversations);
   } catch (error) {
     next(error);
+  }
+});
+
+router.patch("/:id/read", async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.sendStatus(401);
+    }
+    
+    const { message } = req.body;
+    if (typeof message !== "number") {
+      return res.sendStatus(400);
+    }
+
+    const userId = req.user.id;
+    const { id } = req.params;
+    const conversation = await Conversation.findByPk(id);
+    
+    if (conversation.user1Id === userId) {
+      await conversation.update({
+        user1ReadMessage: message
+      });
+    } else if (conversation.user2Id === userId) {
+      await conversation.update({
+        user2ReadMessage: message
+      });
+    } else {
+      throw new Error(`The user (${req.user.username}) is not in this conversation`);
+    }
+
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
   }
 });
 
