@@ -25,6 +25,8 @@ const Home = ({ user, logout }) => {
   const classes = useStyles();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const [lastReadMessage, setLastReadMessage] = useState(null);
+
   const addSearchedUsers = (users) => {
     const currentUsers = {};
 
@@ -81,23 +83,6 @@ const Home = ({ user, logout }) => {
       console.error(error);
     }
   };
-
-  const updateConversationRead = async (id, body) => {
-    const { data } = await axios.patch(`/api/conversation/${id}/read`, body);
-    return data;
-  };
-
-  const sendReadConversation = (data, body) => {
-    socket.emit('read-conversation', {
-      conversationId: data.conversation.id,
-      sender: data.sender,
-      latestMessageId: body.message
-    });
-  };
-
-  const patchConversation = async (body) => {
-
-  }
 
   const addNewConvo = useCallback(
     (recipientId, message) => {
@@ -157,16 +142,15 @@ const Home = ({ user, logout }) => {
         if (convoCopy.otherUser.username !== activeConversation)
           convoCopy.unreadMessages += 1;
         else
-          socket.emit('read-conversation', {
-            conversationId: message.conversationId,
+          setLastReadMessage({
             sender: user,
-            latestMessageId: message.id,
-          });
+            message: message
+          })
 
         return [convoCopy, ...newConvos];
       });
     },
-    [setConversations, activeConversation, socket, user]
+    [setConversations, activeConversation, user]
   );
 
   const setActiveChat = useCallback(
@@ -189,7 +173,7 @@ const Home = ({ user, logout }) => {
         convoCopy.user1 === null
           ? convoCopy.user1ReadMessage
           : convoCopy.user2ReadMessage;
-      
+
       if (last >= 0) {
         const latestMessageId = convoCopy.messages[last].id;
         if (convoCopy.user1 === null)
@@ -203,16 +187,15 @@ const Home = ({ user, logout }) => {
 
       // only send an event if there is a higher message id
       if (last < 0) return;
-      const latestMessageId = conversations[convoIndex].messages[last].id;
+      const latestMessage = conversations[convoIndex].messages[last];
 
-      if (userLastReadMessage < latestMessageId)
-        socket.emit('read-conversation', {
-          conversationId: convoCopy.id,
+      if (userLastReadMessage < latestMessage.id)
+        setLastReadMessage({
           sender: user,
-          latestMessageId: latestMessageId,
-        });
+          message: latestMessage
+        })
     },
-    [setActiveConversation, setConversations, conversations, socket, user]
+    [setActiveConversation, setConversations, conversations, user]
   );
 
   const updateReadConversation = useCallback(
@@ -339,6 +322,40 @@ const Home = ({ user, logout }) => {
       fetchConversations();
     }
   }, [user]);
+
+  useEffect(() => {
+    const updateConversationRead = async (id, body) => {
+      await axios.patch(`/api/conversations/${id}/read`, body);
+    };
+  
+    const sendReadConversation = (id, body) => {
+      socket.emit('read-conversation', {
+        conversationId: id,
+        sender: body.sender,
+        latestMessageId: body.message
+      });
+    };
+  
+    const patchConversation = async (id, body) => {
+      try {
+        await updateConversationRead(id, body);
+  
+        sendReadConversation(id, body);
+      } catch (err) {
+        console.error(err.response.data.error || 'Server Error');
+      }
+    }
+
+    if (lastReadMessage === null) return;
+
+    console.log('updating last read message');
+    console.dir(lastReadMessage);
+    // update the conversation
+    patchConversation(lastReadMessage.message.conversationId, {
+      sender: lastReadMessage.sender,
+      message: lastReadMessage.message.id
+    });
+  }, [lastReadMessage, socket]);
 
   const handleLogout = async () => {
     if (user && user.id) {

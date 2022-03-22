@@ -145,7 +145,7 @@ router.patch("/:id/read", async (req, res, next) => {
       throw new Error(`The user (${req.user.username}) is not in this conversation`);
     }
 
-    res.sendStatus(200);
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }
