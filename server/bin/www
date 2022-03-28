@@ -7,10 +7,12 @@ require("dotenv").config();
  * Module dependencies.
  */
 
-const { app, sessionStore } = require("../app");
 const http = require("http");
+
+const { app, sessionStore, sessionMiddleware } = require("../app");
 const db = require("../db");
 const onlineUsers = require("../onlineUsers");
+const { userSession } = require("../middleware/session");
 
 /**
  * Get port from environment and store in Express.
@@ -30,6 +32,19 @@ const server = http.createServer(app);
  */
 
 const io = require("socket.io")(server);
+
+const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+
+io.use(wrap(sessionMiddleware));
+io.use(wrap(userSession));
+
+io.use((socket, next) => {
+  if (socket.request.user) {
+    next();
+  } else {
+    next(new Error("Unauthorized"));
+  }
+})
 
 io.on("connection", (socket) => {
   socket.on("go-online", (id) => {
